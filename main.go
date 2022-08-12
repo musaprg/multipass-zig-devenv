@@ -1,10 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+)
+
+const (
+	sshPublicKeyPath  = "~/.ssh/multipass.pub"
+	sshPrivateKeyPath = "~/.ssh/multipass"
+	zlsVersion        = "0.9.0"
 )
 
 var (
@@ -41,9 +49,26 @@ func init() {
 }
 
 func launchVM() error {
-	// TODO(musaprg): generate ssh key
-	// TODO(musaprg): add to cloud config authorized key setting
-	return nil
+	// TODO(musaprg): Use crypto package instead of directly executing OpenSSH command
+	if _, err := exec.Command("ssh-keygen", "-t", "rsa", "-b", "4096", "-f", sshPublicKeyPath).Output(); err != nil {
+		return err
+	}
+	pubKeyContent, err := os.ReadFile(sshPublicKeyPath)
+	if err != nil {
+		return err
+	}
+	cc := cloudConfig{
+		AuthorizedKey: string(pubKeyContent),
+		ZLSVersion:    zlsVersion,
+	}
+	buf := bytes.NewBufferString("")
+	cc.printAsYAML(buf)
+	cmd := exec.Command("multipass", "--name", name, "--cpus", fmt.Sprintf("%d", cpus), "--mem", mem, "--disk", disk, "--cloud-config", "-", image)
+	cmd.Stdin = buf
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	_, err = cmd.Output()
+	return err
 }
 
 func main() {
@@ -55,8 +80,8 @@ func main() {
 	}
 
 	cc := cloudConfig{
-		AuthorizedKey: "hogehoge",
-		ZLSVersion:    "0.9.0",
+		AuthorizedKey: "<modify here with your public key value>",
+		ZLSVersion:    zlsVersion,
 	}
 
 	switch args[0] {
