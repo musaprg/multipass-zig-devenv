@@ -1,17 +1,20 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 const (
-	sshPublicKeyPath  = "~/.ssh/multipass.pub"
-	sshPrivateKeyPath = "~/.ssh/multipass"
+	sshPublicKeyName  = "multipass.pub"
+	sshPrivateKeyName = "multipass"
 	zlsVersion        = "0.9.0"
 )
 
@@ -49,11 +52,18 @@ func init() {
 }
 
 func launchVM() error {
+	homePath, err := os.UserHomeDir()
+	sshPath := filepath.Join(homePath, ".ssh")
+	privateKeyPath := filepath.Join(sshPath, sshPrivateKeyName)
+	publicKeyPath := filepath.Join(sshPath, sshPublicKeyName)
 	// TODO(musaprg): Use crypto package instead of directly executing OpenSSH command
-	if _, err := exec.Command("ssh-keygen", "-t", "rsa", "-b", "4096", "-f", sshPublicKeyPath).Output(); err != nil {
-		return err
+	if _, err := os.Stat(privateKeyPath); os.IsNotExist(err) {
+		log.Println("ssh key not found, generating...")
+		if _, err := exec.Command("ssh-keygen", "-t", "rsa", "-b", "4096", "-f", privateKeyPath, "-N", "\"\"").Output(); err != nil {
+			return err
+		}
 	}
-	pubKeyContent, err := os.ReadFile(sshPublicKeyPath)
+	pubKeyContent, err := os.ReadFile(publicKeyPath)
 	if err != nil {
 		return err
 	}
@@ -61,14 +71,31 @@ func launchVM() error {
 		AuthorizedKey: string(pubKeyContent),
 		ZLSVersion:    zlsVersion,
 	}
-	buf := bytes.NewBufferString("")
-	cc.printAsYAML(buf)
-	cmd := exec.Command("multipass", "--name", name, "--cpus", fmt.Sprintf("%d", cpus), "--mem", mem, "--disk", disk, "--cloud-config", "-", image)
-	cmd.Stdin = buf
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	_, err = cmd.Output()
-	return err
+	var buf bytes.Buffer
+	cc.printAsYAML(&buf)
+	cmd := exec.Command("multipass", "launch", "--name", name, "--cpus", fmt.Sprintf("%d", cpus), "--mem", mem, "--disk", disk, "--cloud-config", "-", image)
+	cmd.Stdin = &buf
+	stdout, _ := cmd.StdoutPipe()
+	stderr, _ := cmd.StderrPipe()
+	_ = cmd.Start()
+
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			fmt.Println(scanner.Text())
+		}
+	}()
+
+	go func() {
+		b, _ := io.ReadAll(stderr)
+		fmt.Println(string(b))
+	}()
+
+	if err := cmd.Wait(); err != nil {
+		return fmt.Errorf("unable to execute multipass: %w", err)
+	}
+
+	return nil
 }
 
 func main() {
@@ -93,12 +120,12 @@ func main() {
 		log.Printf("image: %s\n", image)
 		err := launchVM()
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatalf("%+v", err)
 		}
 	case "gen":
 		err := cc.printAsYAML(os.Stdout)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatalf("%+v", err)
 		}
 	default:
 		flag.Usage()
