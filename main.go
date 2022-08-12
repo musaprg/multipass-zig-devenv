@@ -30,7 +30,7 @@ var (
 func printHelp() {
 	fmt.Fprintf(os.Stderr, `Generating multipass-based development environment for Zig project
 
-Usage: %s
+Usage: %s [Options] Command
 
 Available Commands:
   launch        launch multipass VM
