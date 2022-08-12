@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
-    "log"
 )
 
 var (
@@ -40,11 +40,10 @@ func init() {
 	flag.Usage = printHelp
 }
 
-
 func launchVM() error {
-    // TODO(musaprg): generate ssh key
-    // TODO(musaprg): add to cloud config authorized key setting
-    return nil
+	// TODO(musaprg): generate ssh key
+	// TODO(musaprg): add to cloud config authorized key setting
+	return nil
 }
 
 func main() {
@@ -55,22 +54,27 @@ func main() {
 		return
 	}
 
-    cc := cloudConfig{
-        AuthorizedKey: "hogehoge",
-        ZLSVersion: "0.9.0",
-    }
+	cc := cloudConfig{
+		AuthorizedKey: "hogehoge",
+		ZLSVersion:    "0.9.0",
+	}
 
 	switch args[0] {
 	case "launch":
-        err := launchVM()
-        if err != nil {
-            log.Fatalln(err)
-        }
-    case "gen":
-        err := cc.printAsYAML(os.Stdout)
-        if err != nil {
-            log.Fatalln(err)
-        }
+		log.Printf("name: %s\n", name)
+		log.Printf("cpus: %d\n", cpus)
+		log.Printf("mem: %s\n", mem)
+		log.Printf("disk: %s\n", disk)
+		log.Printf("image: %s\n", image)
+		err := launchVM()
+		if err != nil {
+			log.Fatalln(err)
+		}
+	case "gen":
+		err := cc.printAsYAML(os.Stdout)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	default:
 		flag.Usage()
 	}
