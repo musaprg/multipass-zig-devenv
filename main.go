@@ -73,7 +73,7 @@ func launchVM() error {
 	}
 	var buf bytes.Buffer
 	cc.printAsYAML(&buf)
-	cmd := exec.Command("multipass", "launch", "--name", name, "--cpus", fmt.Sprintf("%d", cpus), "--mem", mem, "--disk", disk, "--cloud-config", "-", image)
+	cmd := exec.Command("multipass", "launch", "--name", name, "--cpus", fmt.Sprintf("%d", cpus), "--mem", mem, "--disk", disk, "--cloud-init", "-", image)
 	cmd.Stdin = &buf
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
