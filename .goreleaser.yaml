@@ -1,0 +1,45 @@
+before:
+  hooks:
+    - go mod tidy
+    # enable this line if you need go generate
+    #- go generate ./...
+builds:
+  - main: . # the place where main.go exists
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+brews:
+  - name: multipass-zig-devenv
+    tap:
+      owner: musaprg
+      name: homebrew-tap
+    url_template: "https://github.com/musaprg/multipass-zig-devenv/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_author:
+      name: goreleaserbot
+      email: goreleaser@carlosbecker.com
+    homepage: "https://mssn.dev/"
+    description: "Generating multipass-based development environment for Zig project."
+    test: | # test command to evaluate the installation successed
+      system "#{bin}/multipass-zig-devenv -h"
+    install: |  # name of binary
+      bin.install "multipass-zig-devenv"

@@ -23,3 +23,5 @@
 go.work
 
 multipass-zig-devenv
+
+dist/
