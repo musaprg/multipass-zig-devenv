@@ -1,0 +1,33 @@
+#cloud-config
+
+locale: en_US.UTF8
+timezone: Asia/Tokyo
+
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh-authorized-keys:
+      - {{ .AuthorizedKey }}
+
+package_upgrade: true
+
+packages:
+  - avahi-daemon
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - zip
+  - jq
+  - python3-pip
+  - xz-utils
+
+runcmd:
+ - sudo snap install --classic --beta zig
+ - |-
+  git clone https://github.com/zigtools/zls.git && \
+  cd zls && git checkout refs/tags/{{ .ZLSVersion }} && \
+  git submodule update --init --recursive && \
+  zig build -Drelease-safe
+

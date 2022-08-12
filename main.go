@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+    "log"
 )
 
 var (
@@ -22,6 +23,7 @@ Usage: %s
 
 Available Commands:
   launch        launch multipass VM
+  gen           generate cloud-config.yaml based on passed value
 
 Options:
 `, os.Args[0])
@@ -34,13 +36,15 @@ func init() {
 	flag.StringVar(&mem, "mem", "4G", "amount of memory for multipass VM")
 	flag.StringVar(&disk, "disk", "20G", "amount of disk for multipass VM")
 	flag.StringVar(&image, "image", "latest", "ubuntu image used for launching multipass VM")
-	flag.BoolVar(&dryrun, "dry-run", false, "only generating cloud-init.yaml without launching actual multipass VM")
 
 	flag.Usage = printHelp
 }
 
-func launchVM() {
 
+func launchVM() error {
+    // TODO(musaprg): generate ssh key
+    // TODO(musaprg): add to cloud config authorized key setting
+    return nil
 }
 
 func main() {
@@ -51,9 +55,22 @@ func main() {
 		return
 	}
 
+    cc := cloudConfig{
+        AuthorizedKey: "hogehoge",
+        ZLSVersion: "0.9.0",
+    }
+
 	switch args[0] {
 	case "launch":
-		launchVM()
+        err := launchVM()
+        if err != nil {
+            log.Fatalln(err)
+        }
+    case "gen":
+        err := cc.printAsYAML(os.Stdout)
+        if err != nil {
+            log.Fatalln(err)
+        }
 	default:
 		flag.Usage()
 	}
